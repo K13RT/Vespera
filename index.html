@@ -1,106 +1,136 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Vespera</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-      tailwind.config = {
-        darkMode: 'class',
-        theme: {
-          extend: {
-            fontFamily: {
-              sans: ['Quicksand', 'sans-serif'],
-            },
-            colors: {
-              vespera: {
-                light: '#F3E5F5', // Lavender Mist
-                dark: '#1A1A2E',  // Deep Night Purple
-                accent: '#9C27B0', // Deep Purple
-                soft: '#D1C4E9',   // Pastel Purple
-                cardLight: '#FFFFFF',
-                cardDark: '#252540', // Slightly lighter than bg
-                textLight: '#1A1A2E',
-                textDark: '#E0E0E0',
-              }
-            },
-            transitionTimingFunction: {
-              'spring-custom': 'cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vespera</title>
+  <meta name="description"
+    content="Vespera - Your personal digital journal for capturing daily reflections and emotions">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@300;400;500;600;700&display=swap"
+    rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Quicksand', 'sans-serif'],
+          },
+          colors: {
+            vespera: {
+              light: '#F3E5F5',
+              dark: '#1A1A2E',
+              accent: '#9C27B0',
+              soft: '#D1C4E9',
+              cardLight: '#FFFFFF',
+              cardDark: '#252540',
+              textLight: '#1A1A2E',
+              textDark: '#E0E0E0',
             }
+          },
+          transitionTimingFunction: {
+            'spring-custom': 'cubic-bezier(0.175, 0.885, 0.32, 1.275)',
           }
         }
       }
-    </script>
-    <style>
-      body {
-        transition: background-color 300ms ease-out;
-      }
+    }
+  </script>
+  <style>
+    body {
+      transition: background-color 300ms ease-out;
+    }
 
-      /* Custom Scrollbar for a cleaner look */
-      ::-webkit-scrollbar {
-        width: 8px;
-      }
-      ::-webkit-scrollbar-track {
-        background: transparent; 
-      }
-      ::-webkit-scrollbar-thumb {
-        background: #D1C4E9; 
-        border-radius: 4px;
-      }
-      ::-webkit-scrollbar-thumb:hover {
-        background: #9C27B0; 
-      }
-      .no-scrollbar::-webkit-scrollbar {
-        display: none;
-      }
-      .no-scrollbar {
-        -ms-overflow-style: none;
-        scrollbar-width: none;
-      }
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
 
-      /* GPU Acceleration Helper */
-      .gpu-layer {
-        transform: translateZ(0);
-        will-change: transform, opacity;
-        backface-visibility: hidden;
-      }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
 
-      /* Optimized Glass Effect: Solid on Mobile, Blur on Desktop */
+    ::-webkit-scrollbar-thumb {
+      background: #D1C4E9;
+      border-radius: 4px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #9C27B0;
+    }
+
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+
+    .gpu-layer {
+      transform: translateZ(0);
+      will-change: transform, opacity;
+      backface-visibility: hidden;
+    }
+
+    .glass-panel {
+      background-color: rgba(255, 255, 255, 0.95);
+    }
+
+    .dark .glass-panel {
+      background-color: rgba(26, 26, 46, 0.95);
+    }
+
+    @media (min-width: 768px) {
       .glass-panel {
-        background-color: rgba(255, 255, 255, 0.95);
+        background-color: rgba(255, 255, 255, 0.8);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
       }
+
       .dark .glass-panel {
-        background-color: rgba(26, 26, 46, 0.95);
+        background-color: rgba(26, 26, 46, 0.8);
       }
-      
-      @media (min-width: 768px) {
-        .glass-panel {
-          background-color: rgba(255, 255, 255, 0.8);
-          backdrop-filter: blur(12px);
-          -webkit-backdrop-filter: blur(12px);
-        }
-        .dark .glass-panel {
-          background-color: rgba(26, 26, 46, 0.8);
-        }
+    }
+
+    @keyframes fade-in-up {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
       }
-    </style>
-  <script type="importmap">
-{
-  "imports": {
-    "react": "https://esm.sh/react@^19.2.3",
-    "react/": "https://esm.sh/react@^19.2.3/",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
-    "lucide-react": "https://esm.sh/lucide-react@^0.562.0",
-    "recharts": "https://esm.sh/recharts@^3.6.0"
-  }
-}
-</script>
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .animate-fade-in-up {
+      animation: fade-in-up 0.4s ease-out;
+    }
+
+    @keyframes fade-in {
+      from {
+        opacity: 0;
+      }
+
+      to {
+        opacity: 1;
+      }
+    }
+
+    .animate-fade-in {
+      animation: fade-in 0.3s ease-out;
+    }
+  </style>
 </head>
-  <body>
-    <div id="root"></div>
-  </body>
+
+<body>
+  <div id="root"></div>
+  <script type="module" src="/src/main.tsx"></script>
+</body>
+
 </html>

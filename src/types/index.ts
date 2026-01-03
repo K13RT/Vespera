@@ -7,7 +7,7 @@ export interface JournalEntry {
   mood?: MoodLevel;
   energyLevel?: number; // 0-100
   weather?: string;
-  impressivePlace?: string; // Replaced location
+  impressivePlace?: string;
   tags?: string[];
   song?: {
     title: string;
