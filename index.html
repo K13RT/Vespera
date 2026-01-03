@@ -27,6 +27,9 @@
                 textLight: '#1A1A2E',
                 textDark: '#E0E0E0',
               }
+            },
+            transitionTimingFunction: {
+              'spring-custom': 'cubic-bezier(0.175, 0.885, 0.32, 1.275)',
             }
           }
         }
@@ -54,15 +57,41 @@
         -ms-overflow-style: none;
         scrollbar-width: none;
       }
+
+      /* GPU Acceleration Helper */
+      .gpu-layer {
+        transform: translateZ(0);
+        will-change: transform, opacity;
+        backface-visibility: hidden;
+      }
+
+      /* Optimized Glass Effect: Solid on Mobile, Blur on Desktop */
+      .glass-panel {
+        background-color: rgba(255, 255, 255, 0.95);
+      }
+      .dark .glass-panel {
+        background-color: rgba(26, 26, 46, 0.95);
+      }
+      
+      @media (min-width: 768px) {
+        .glass-panel {
+          background-color: rgba(255, 255, 255, 0.8);
+          backdrop-filter: blur(12px);
+          -webkit-backdrop-filter: blur(12px);
+        }
+        .dark .glass-panel {
+          background-color: rgba(26, 26, 46, 0.8);
+        }
+      }
     </style>
   <script type="importmap">
 {
   "imports": {
-    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
     "react": "https://esm.sh/react@^19.2.3",
     "react/": "https://esm.sh/react@^19.2.3/",
-    "recharts": "https://esm.sh/recharts@^3.6.0",
-    "lucide-react": "https://esm.sh/lucide-react@^0.562.0"
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "lucide-react": "https://esm.sh/lucide-react@^0.562.0",
+    "recharts": "https://esm.sh/recharts@^3.6.0"
   }
 }
 </script>

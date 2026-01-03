@@ -377,7 +377,8 @@ const FocusEditor: React.FC<FocusEditorProps> = ({
   if (!isOpen && !isExiting) return null;
 
   return (
-    <div className={`fixed inset-0 z-50 flex flex-col bg-gradient-to-b from-[#FDFBFD] to-gray-50 dark:from-[#151525] dark:to-[#0f0f1a] transition-opacity duration-500 ${isOpen && !isExiting ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+    // Added 'gpu-layer' to enable hardware acceleration for the modal transition
+    <div className={`fixed inset-0 z-50 flex flex-col bg-gradient-to-b from-[#FDFBFD] to-gray-50 dark:from-[#151525] dark:to-[#0f0f1a] transition-opacity duration-500 gpu-layer ${isOpen && !isExiting ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
       
       {/* 1. Minimal Header */}
       <div className="shrink-0 pt-4 px-4 md:px-12 flex justify-between items-center z-10">
@@ -579,9 +580,12 @@ const FocusEditor: React.FC<FocusEditorProps> = ({
         <div className="fixed bottom-4 md:bottom-6 left-0 right-0 z-40 px-3 md:px-0 flex justify-center pointer-events-none">
             
             {/* The Toolbar Container */}
+            {/* Optimized for Mobile: Increased opacity to 95/100 and removed blur. Desktop keeps blur. */}
             <div className={`
                 pointer-events-auto
-                w-full max-w-2xl bg-white/90 dark:bg-[#1A1A2E]/95 backdrop-blur-xl
+                w-full max-w-2xl 
+                bg-white/95 dark:bg-[#1A1A2E]/95 md:bg-white/90 md:dark:bg-[#1A1A2E]/95
+                backdrop-filter-none md:backdrop-blur-xl
                 shadow-2xl border border-gray-200/50 dark:border-white/10
                 transition-all duration-500 ease-spring-custom
                 overflow-hidden flex flex-col

@@ -17,9 +17,9 @@ const EditorWidget: React.FC<EditorWidgetProps> = ({ onExpand, savedEntry }) => 
       {/* Decorative Background Elements */}
       <div className="absolute inset-0 bg-gradient-to-br from-white via-purple-50/30 to-purple-50 dark:from-vespera-cardDark dark:via-vespera-cardDark dark:to-[#2A2A4A] opacity-100 transition-colors duration-500"></div>
       
-      {/* Animated Blobs */}
-      <div className="absolute top-[-20%] right-[-10%] w-72 h-72 bg-purple-300/30 dark:bg-purple-600/20 rounded-full blur-[80px] group-hover:bg-purple-300/40 dark:group-hover:bg-purple-500/30 transition-all duration-700 pointer-events-none mix-blend-multiply dark:mix-blend-screen"></div>
-      <div className="absolute bottom-[-20%] left-[-10%] w-64 h-64 bg-blue-200/30 dark:bg-blue-600/10 rounded-full blur-[60px] group-hover:bg-blue-200/40 dark:group-hover:bg-blue-500/20 transition-all duration-700 pointer-events-none mix-blend-multiply dark:mix-blend-screen"></div>
+      {/* Animated Blobs - Optimized: Reduced blur on mobile to save GPU fill rate */}
+      <div className="absolute top-[-20%] right-[-10%] w-72 h-72 bg-purple-300/30 dark:bg-purple-600/20 rounded-full blur-[40px] md:blur-[80px] group-hover:bg-purple-300/40 dark:group-hover:bg-purple-500/30 transition-all duration-700 pointer-events-none mix-blend-multiply dark:mix-blend-screen"></div>
+      <div className="absolute bottom-[-20%] left-[-10%] w-64 h-64 bg-blue-200/30 dark:bg-blue-600/10 rounded-full blur-[30px] md:blur-[60px] group-hover:bg-blue-200/40 dark:group-hover:bg-blue-500/20 transition-all duration-700 pointer-events-none mix-blend-multiply dark:mix-blend-screen"></div>
 
       {/* Header */}
       <div className="relative z-10 flex justify-between items-start">

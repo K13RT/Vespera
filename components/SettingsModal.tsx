@@ -53,14 +53,14 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-      {/* Backdrop */}
+      {/* Backdrop - Optimized: No blur on mobile */}
       <div 
-        className="absolute inset-0 bg-black/20 dark:bg-black/60 backdrop-blur-sm transition-opacity"
+        className="absolute inset-0 bg-black/40 dark:bg-black/70 md:backdrop-blur-sm transition-opacity"
         onClick={onClose}
       ></div>
 
-      {/* Modal Content */}
-      <div className="relative w-full max-w-md bg-white dark:bg-[#1A1A2E] rounded-3xl shadow-2xl border border-gray-100 dark:border-white/10 overflow-hidden animate-fade-in-up">
+      {/* Modal Content - Added gpu-layer for smoother animation */}
+      <div className="relative w-full max-w-md bg-white dark:bg-[#1A1A2E] rounded-3xl shadow-2xl border border-gray-100 dark:border-white/10 overflow-hidden animate-fade-in-up gpu-layer">
         
         {/* Header */}
         <div className="px-6 py-4 border-b border-gray-100 dark:border-white/5 flex items-center justify-between bg-gray-50/50 dark:bg-white/5">
