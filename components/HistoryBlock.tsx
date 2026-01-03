@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from 'react';
-import { Book, Calendar as CalendarIcon, Hash, Edit2, ChevronLeft, ChevronRight, LayoutGrid, List, Search, Filter, X, MapPin, ArrowLeftRight } from 'lucide-react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { Book, Calendar as CalendarIcon, Hash, Edit2, ChevronLeft, ChevronRight, LayoutGrid, List, Search, Filter, X, MapPin, ArrowLeftRight, PlusCircle } from 'lucide-react';
 import { JournalEntry, MoodLevel } from '../types';
 import { MOOD_OPTIONS } from '../constants';
 
@@ -30,6 +30,9 @@ const HistoryBlock: React.FC<HistoryBlockProps> = ({ entries, onEntryClick }) =>
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
   const [currentDate, setCurrentDate] = useState(new Date());
   
+  // --- Performance Optimization: Pagination State ---
+  const [visibleCount, setVisibleCount] = useState(20);
+
   // --- Search & Filter State ---
   const [showFilters, setShowFilters] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -39,6 +42,11 @@ const HistoryBlock: React.FC<HistoryBlockProps> = ({ entries, onEntryClick }) =>
   const toggleViewMode = () => {
     setViewMode(prev => prev === 'list' ? 'calendar' : 'list');
   };
+
+  // --- Reset visible count when filters change to avoid empty states at high offsets ---
+  useEffect(() => {
+    setVisibleCount(20);
+  }, [searchQuery, filterMood, filterTag, viewMode]);
 
   // --- Filtering Logic ---
   const filteredEntries = useMemo(() => {
@@ -61,6 +69,18 @@ const HistoryBlock: React.FC<HistoryBlockProps> = ({ entries, onEntryClick }) =>
         return matchesText && matchesMood && matchesTag;
     });
   }, [entries, searchQuery, filterMood, filterTag]);
+
+  // --- Pagination Logic ---
+  // Only render what is necessary for the DOM
+  const visibleEntries = useMemo(() => {
+      return filteredEntries.slice(0, visibleCount);
+  }, [filteredEntries, visibleCount]);
+
+  const hasMoreEntries = visibleCount < filteredEntries.length;
+
+  const handleLoadMore = () => {
+      setVisibleCount(prev => prev + 20);
+  };
 
   // Extract all unique tags from entries for the filter list
   const availableTags = useMemo(() => {
@@ -262,7 +282,8 @@ const HistoryBlock: React.FC<HistoryBlockProps> = ({ entries, onEntryClick }) =>
                         )}
                     </div>
                 ) : (
-                    filteredEntries.map((entry) => {
+                    <>
+                    {visibleEntries.map((entry) => {
                         const dateObj = new Date(entry.date);
                         const isDateValid = !isNaN(dateObj.getTime());
                         
@@ -270,6 +291,7 @@ const HistoryBlock: React.FC<HistoryBlockProps> = ({ entries, onEntryClick }) =>
                             <div 
                                 key={entry.id} 
                                 onClick={() => onEntryClick(entry)}
+                                // Optimization: Avoid backdrop-blur in list items. Use solid colors with opacity for better performance.
                                 className="relative min-w-[280px] w-[280px] md:min-w-[320px] h-full p-4 md:p-6 rounded-3xl bg-gray-50 dark:bg-white/5 hover:bg-white dark:hover:bg-[#1f1f35] transition-all cursor-pointer group border border-transparent hover:border-gray-100 dark:hover:border-white/10 flex flex-col justify-between shadow-sm hover:shadow-xl hover:-translate-y-1 duration-300 will-change-transform"
                             >
                                 {/* Top: Title & Date */}
@@ -307,12 +329,13 @@ const HistoryBlock: React.FC<HistoryBlockProps> = ({ entries, onEntryClick }) =>
                                     {entry.highlight ? (
                                         <div className="relative pl-4 h-full">
                                             <div className="absolute left-0 top-1 bottom-1 w-1 bg-gradient-to-b from-vespera-accent/50 to-pink-500/50 rounded-full"></div>
-                                            <p className="text-sm font-medium text-vespera-textLight/80 dark:text-gray-300 line-clamp-6 italic leading-relaxed">
+                                            {/* Optimization: line-clamp-3 reduces paint area for long text */}
+                                            <p className="text-sm font-medium text-vespera-textLight/80 dark:text-gray-300 line-clamp-3 italic leading-relaxed">
                                                 "{entry.highlight}"
                                             </p>
                                         </div>
                                     ) : (
-                                        <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-6 leading-relaxed">
+                                        <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-3 leading-relaxed">
                                             {entry.content}
                                         </p>
                                     )}
@@ -344,7 +367,23 @@ const HistoryBlock: React.FC<HistoryBlockProps> = ({ entries, onEntryClick }) =>
                                 </div>
                             </div>
                         );
-                    })
+                    })}
+
+                    {/* Load More Button - Only shows if there are more entries */}
+                    {hasMoreEntries && (
+                        <div className="flex flex-col justify-center items-center min-w-[100px] px-4">
+                            <button 
+                                onClick={handleLoadMore}
+                                className="group flex flex-col items-center gap-2 p-4 rounded-full bg-gray-100 dark:bg-white/5 hover:bg-vespera-accent hover:text-white transition-all duration-300 text-gray-500"
+                            >
+                                <div className="p-2 rounded-full bg-white dark:bg-white/10 group-hover:bg-white/20">
+                                    <PlusCircle size={24} />
+                                </div>
+                                <span className="text-xs font-bold whitespace-nowrap">Xem thêm</span>
+                            </button>
+                        </div>
+                    )}
+                    </>
                 )}
             </div>
          </div>
