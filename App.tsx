@@ -210,6 +210,8 @@ function App() {
   const [journalEntries, setJournalEntries] = useState<JournalEntry[]>(INITIAL_ENTRIES);
   const [currentDraft, setCurrentDraft] = useState("");
   const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null);
+  // State to hold the specific date clicked from the calendar for a new entry
+  const [targetDateForNewEntry, setTargetDateForNewEntry] = useState<string | null>(null);
   
   // Auto Night Shift Logic
   useEffect(() => {
@@ -240,6 +242,13 @@ function App() {
   // allowing React.memo in children to work effectively.
   const handleEntryClick = useCallback((entry: JournalEntry) => {
     setSelectedEntry(entry);
+    setTargetDateForNewEntry(null); // Clear specific date trigger if viewing existing
+    setIsFocusMode(true);
+  }, []);
+
+  const handleDateSelect = useCallback((date: Date) => {
+    setSelectedEntry(null);
+    setTargetDateForNewEntry(date.toISOString());
     setIsFocusMode(true);
   }, []);
 
@@ -248,6 +257,7 @@ function App() {
     // Slight delay to clear selection so the close animation looks smooth
     setTimeout(() => {
         setSelectedEntry(null);
+        setTargetDateForNewEntry(null);
     }, 500);
   }, []);
 
@@ -263,7 +273,8 @@ function App() {
             // Create new entry
             const newEntry: JournalEntry = {
                 id: Date.now().toString(),
-                date: new Date().toISOString(),
+                // Use the date passed from the editor, or fallback to now
+                date: entryData.date || new Date().toISOString(), 
                 ...entryData
             };
             // Add to history (prepend)
@@ -373,6 +384,7 @@ function App() {
 
   const handleExpandEditor = useCallback(() => {
       setSelectedEntry(null); // Ensure we are in "New Mode"
+      setTargetDateForNewEntry(null); // Ensure we use current date/draft
       setIsFocusMode(true);
   }, []);
 
@@ -407,6 +419,7 @@ function App() {
         onSave={handleSaveEntry}
         initialContent={currentDraft}
         initialEntry={selectedEntry}
+        initialDate={targetDateForNewEntry}
         availableTags={allTags}
       />
 
@@ -480,6 +493,7 @@ function App() {
                 <HistoryBlock 
                     entries={journalEntries} 
                     onEntryClick={handleEntryClick}
+                    onEmptyDateClick={handleDateSelect}
                 />
             </div>
 

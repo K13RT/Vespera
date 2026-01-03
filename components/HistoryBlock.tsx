@@ -6,6 +6,7 @@ import { MOOD_OPTIONS } from '../constants';
 interface HistoryBlockProps {
   entries: JournalEntry[];
   onEntryClick: (entry: JournalEntry) => void;
+  onEmptyDateClick: (date: Date) => void;
 }
 
 // Helper to map mood to modern gradient styles
@@ -26,7 +27,7 @@ const getMoodStyle = (mood?: MoodLevel) => {
     }
 };
 
-const HistoryBlock: React.FC<HistoryBlockProps> = ({ entries, onEntryClick }) => {
+const HistoryBlock: React.FC<HistoryBlockProps> = ({ entries, onEntryClick, onEmptyDateClick }) => {
   const [viewMode, setViewMode] = useState<'list' | 'calendar'>('list');
   const [currentDate, setCurrentDate] = useState(new Date());
   
@@ -426,12 +427,23 @@ const HistoryBlock: React.FC<HistoryBlockProps> = ({ entries, onEntryClick }) =>
                     return (
                         <div 
                             key={index}
-                            onClick={() => entry && onEntryClick(entry)}
+                            onClick={() => {
+                                if (entry) {
+                                    onEntryClick(entry);
+                                } else {
+                                    // Construct specific date object for the empty cell
+                                    const cellDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
+                                    // Set time to current time to avoid timezone edge cases, or just keep as midnight local
+                                    // Let's set it to noon to be safe from DST shifts when formatting
+                                    cellDate.setHours(12, 0, 0, 0); 
+                                    onEmptyDateClick(cellDate);
+                                }
+                            }}
                             className={`
                                 relative rounded-xl md:rounded-2xl flex flex-col items-center justify-center transition-all duration-300 group overflow-hidden will-change-transform
                                 ${entry 
                                     ? `cursor-pointer hover:scale-105 hover:z-10 ${getMoodStyle(entry.mood)}` 
-                                    : 'cursor-default bg-transparent text-gray-300 dark:text-gray-700 hover:bg-gray-50 dark:hover:bg-white/5'
+                                    : 'cursor-pointer bg-transparent text-gray-300 dark:text-gray-700 hover:bg-purple-50 dark:hover:bg-white/10 hover:text-vespera-accent dark:hover:text-purple-300'
                                 }
                                 ${isToday && !entry ? 'ring-2 ring-dashed ring-vespera-accent/50 text-vespera-accent dark:text-vespera-accent' : ''}
                             `}
@@ -441,6 +453,11 @@ const HistoryBlock: React.FC<HistoryBlockProps> = ({ entries, onEntryClick }) =>
                             {/* Today Indicator Text */}
                             {isToday && !entry && (
                                 <span className="absolute bottom-0.5 md:bottom-1 text-[6px] md:text-[8px] font-bold uppercase tracking-wide text-vespera-accent/70">Hôm nay</span>
+                            )}
+                            
+                            {/* Visual hint for adding new entry on hover */}
+                            {!entry && (
+                                <span className="absolute bottom-1 opacity-0 group-hover:opacity-100 transition-opacity text-[8px] font-bold text-vespera-accent/60 dark:text-purple-300/60">+ Thêm</span>
                             )}
 
                             {/* Enhanced Tooltip for Calendar */}

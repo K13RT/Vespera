@@ -15,11 +15,19 @@ interface FocusEditorProps {
   onSave: (entry: any) => void; 
   initialEntry?: JournalEntry | null;
   initialContent?: string;
+  initialDate?: string | null;
   availableTags?: string[];
 }
 
 const WEATHER_OPTIONS = ["Trong xanh", "Có mây", "Mưa", "Bão", "Tuyết", "Gió"];
 const DRAFT_STORAGE_KEY = 'vespera_current_draft';
+
+// Helper to format date for datetime-local input (YYYY-MM-DDTHH:mm)
+const toLocalISOString = (date: Date) => {
+    const offset = date.getTimezoneOffset() * 60000; // offset in milliseconds
+    const localISOTime = (new Date(date.getTime() - offset)).toISOString().slice(0, 16);
+    return localISOTime;
+};
 
 const FocusEditor: React.FC<FocusEditorProps> = ({ 
     isOpen, 
@@ -27,6 +35,7 @@ const FocusEditor: React.FC<FocusEditorProps> = ({
     onSave, 
     initialEntry = null, 
     initialContent = '', 
+    initialDate = null,
     availableTags = [] 
 }) => {
   // Mode State
@@ -37,6 +46,7 @@ const FocusEditor: React.FC<FocusEditorProps> = ({
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [highlight, setHighlight] = useState('');
+  const [entryDate, setEntryDate] = useState<string>(new Date().toISOString());
   
   // Metadata
   const [selectedMood, setSelectedMood] = useState<MoodLevel | null>(null);
@@ -141,6 +151,7 @@ const FocusEditor: React.FC<FocusEditorProps> = ({
             setImpressivePlace(initialEntry.impressivePlace || '');
             setTags(initialEntry.tags || []);
             setSongName(initialEntry.song?.title || '');
+            setEntryDate(initialEntry.date); // Load existing date
             setIsToolbarExpanded(false);
             setSaveStatus('idle');
         } else {
@@ -148,33 +159,13 @@ const FocusEditor: React.FC<FocusEditorProps> = ({
             setIsEditing(true);
             setEditingId(null);
             
-            const savedDraft = localStorage.getItem(DRAFT_STORAGE_KEY);
-            let draftLoaded = false;
+            // Prioritize initialDate passed from calendar over draft or current date
+            const defaultDate = initialDate || new Date().toISOString();
             
-            if (savedDraft) {
-                try {
-                    const parsed = JSON.parse(savedDraft);
-                    // Only restore if draft is less than 24 hours old to avoid very stale data
-                    if (Date.now() - parsed.timestamp < 24 * 60 * 60 * 1000) {
-                        setTitle(parsed.title || '');
-                        setContent(parsed.content || '');
-                        setHighlight(parsed.highlight || '');
-                        setSelectedMood(parsed.mood || null);
-                        setEnergyLevel(parsed.energyLevel || 50);
-                        setWeather(parsed.weather || 'Trong xanh');
-                        setImpressivePlace(parsed.impressivePlace || '');
-                        setTags(parsed.tags || []);
-                        setSongName(parsed.songName || '');
-                        setSaveStatus('saved');
-                        draftLoaded = true;
-                    }
-                } catch (e) {
-                    console.error("Failed to restore draft", e);
-                }
-            }
-
-            if (!draftLoaded) {
-                setContent(initialContent);
+            // If explicit initialDate is provided, we skip loading draft to avoid confusion
+            // (User clicked a specific date, they probably want to write fresh for that date)
+            if (initialDate) {
+                setContent('');
                 setTitle('');
                 setHighlight('');
                 setSelectedMood(null);
@@ -183,7 +174,49 @@ const FocusEditor: React.FC<FocusEditorProps> = ({
                 setImpressivePlace('');
                 setTags([]);
                 setSongName('');
+                setEntryDate(defaultDate);
                 setSaveStatus('idle');
+            } else {
+                const savedDraft = localStorage.getItem(DRAFT_STORAGE_KEY);
+                let draftLoaded = false;
+                
+                if (savedDraft) {
+                    try {
+                        const parsed = JSON.parse(savedDraft);
+                        // Only restore if draft is less than 24 hours old to avoid very stale data
+                        if (Date.now() - parsed.timestamp < 24 * 60 * 60 * 1000) {
+                            setTitle(parsed.title || '');
+                            setContent(parsed.content || '');
+                            setHighlight(parsed.highlight || '');
+                            setSelectedMood(parsed.mood || null);
+                            setEnergyLevel(parsed.energyLevel || 50);
+                            setWeather(parsed.weather || 'Trong xanh');
+                            setImpressivePlace(parsed.impressivePlace || '');
+                            setTags(parsed.tags || []);
+                            setSongName(parsed.songName || '');
+                            // Even if draft loaded, use defaultDate (which is 'now' if no initialDate)
+                            setEntryDate(defaultDate); 
+                            setSaveStatus('saved');
+                            draftLoaded = true;
+                        }
+                    } catch (e) {
+                        console.error("Failed to restore draft", e);
+                    }
+                }
+
+                if (!draftLoaded) {
+                    setContent(initialContent);
+                    setTitle('');
+                    setHighlight('');
+                    setSelectedMood(null);
+                    setEnergyLevel(50);
+                    setWeather('Trong xanh');
+                    setImpressivePlace('');
+                    setTags([]);
+                    setSongName('');
+                    setEntryDate(defaultDate);
+                    setSaveStatus('idle');
+                }
             }
 
             setIsToolbarExpanded(false); // Start collapsed to encourage writing first
@@ -198,7 +231,7 @@ const FocusEditor: React.FC<FocusEditorProps> = ({
         setShowSuggestions(false);
         setIsIdle(false);
     }
-  }, [isOpen, initialEntry, initialContent, generateSmartPrompt]);
+  }, [isOpen, initialEntry, initialContent, initialDate, generateSmartPrompt]);
 
   // --- UX: Idle Animation Logic ---
   useEffect(() => {
@@ -241,8 +274,7 @@ const FocusEditor: React.FC<FocusEditorProps> = ({
     
     onSave({
         id: editingId, 
-        // Ensure date is valid. If viewing old entry, keep its date. If new, generate.
-        date: initialEntry?.date || new Date().toISOString(),
+        date: entryDate, // Use the user-selected date
         content,
         title,
         highlight,
@@ -395,21 +427,18 @@ const FocusEditor: React.FC<FocusEditorProps> = ({
     tag => tag.toLowerCase().includes(currentTag.toLowerCase()) && !tags.includes(tag)
   );
 
+  // --- Display Helpers ---
   const getHeaderDate = () => {
-      if (initialEntry && initialEntry.date) {
-          const d = new Date(initialEntry.date);
-          if (!isNaN(d.getTime())) {
-              return d.toLocaleDateString('vi-VN', { weekday: 'long', month: 'long', day: 'numeric' });
-          }
+      const d = new Date(entryDate);
+      if (!isNaN(d.getTime())) {
+          return d.toLocaleDateString('vi-VN', { weekday: 'long', month: 'long', day: 'numeric' });
       }
       return new Date().toLocaleDateString('vi-VN', { weekday: 'long', month: 'long', day: 'numeric' });
   };
   
   const getHeaderTime = () => {
-      if (initialEntry && initialEntry.date) {
-          const d = new Date(initialEntry.date);
-          if (!isNaN(d.getTime())) return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit'});
-      }
+      const d = new Date(entryDate);
+      if (!isNaN(d.getTime())) return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit'});
       return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit'});
   }
 
@@ -492,12 +521,33 @@ const FocusEditor: React.FC<FocusEditorProps> = ({
         <div className="mt-6 md:mt-12 animate-fade-in-up">
             
             {/* Date Display (Document Style) */}
-            <div className="flex flex-col gap-1 mb-8 opacity-60 hover:opacity-100 transition-opacity">
-                <div className="flex items-center gap-2 text-[10px] md:text-xs font-bold uppercase tracking-[0.2em] text-vespera-accent dark:text-purple-400">
-                    <CalendarDays size={14} />
-                    <span>{getHeaderDate()}</span>
-                    <span className="w-1 h-1 rounded-full bg-current"></span>
-                    <span>{getHeaderTime()}</span>
+            <div className="flex flex-col gap-1 mb-8 opacity-80 hover:opacity-100 transition-opacity">
+                {/* Date Picker Trigger */}
+                <div 
+                    className="relative group inline-flex cursor-pointer hover:bg-gray-100 dark:hover:bg-white/5 rounded-lg px-2 py-1 -ml-2 transition-colors"
+                    title={isEditing ? "Nhấn để thay đổi thời gian" : ""}
+                >
+                    {/* Hidden Native Input */}
+                    {isEditing && (
+                        <input 
+                            type="datetime-local" 
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                            value={toLocalISOString(new Date(entryDate))}
+                            onChange={(e) => {
+                                const newDate = new Date(e.target.value);
+                                if (!isNaN(newDate.getTime())) {
+                                    setEntryDate(newDate.toISOString());
+                                }
+                            }}
+                        />
+                    )}
+                    
+                    <div className="flex items-center gap-2 text-[10px] md:text-xs font-bold uppercase tracking-[0.2em] text-vespera-accent dark:text-purple-400">
+                        <CalendarDays size={14} />
+                        <span>{getHeaderDate()}</span>
+                        <span className="w-1 h-1 rounded-full bg-current"></span>
+                        <span>{getHeaderTime()}</span>
+                    </div>
                 </div>
             </div>
 
