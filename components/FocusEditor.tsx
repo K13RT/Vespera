@@ -295,7 +295,7 @@ const FocusEditor: React.FC<FocusEditorProps> = ({
 
   // --- UX: Insert Prompt into Content ---
   const insertPromptToContent = () => {
-    const promptText = `**${suggestedPrompt}**\n\n`;
+    const promptText = `> ${suggestedPrompt}\n\n`;
     
     if (!content.trim()) {
         setContent(promptText);
