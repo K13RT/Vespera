@@ -4,7 +4,7 @@ import {
   Music, MapPin, Cloud, Hash, Zap, Quote, Edit3, 
   Battery, BatteryLow, BatteryMedium, BatteryFull, CheckCircle2,
   CalendarDays, MoreVertical, ChevronUp, ChevronDown, Minimize2,
-  Sparkles, RefreshCw, PenLine
+  Sparkles, RefreshCw, PenLine, Loader2, Check
 } from 'lucide-react';
 import { MoodLevel, JournalEntry } from '../types';
 import { MOOD_OPTIONS, JOURNAL_PROMPTS } from '../constants';
@@ -19,6 +19,7 @@ interface FocusEditorProps {
 }
 
 const WEATHER_OPTIONS = ["Trong xanh", "Có mây", "Mưa", "Bão", "Tuyết", "Gió"];
+const DRAFT_STORAGE_KEY = 'vespera_current_draft';
 
 const FocusEditor: React.FC<FocusEditorProps> = ({ 
     isOpen, 
@@ -56,6 +57,7 @@ const FocusEditor: React.FC<FocusEditorProps> = ({
   const [activeTab, setActiveTab] = useState<'mood' | 'details'>('mood');
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isToolbarExpanded, setIsToolbarExpanded] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
   
   // --- UX Polish States ---
   const [isIdle, setIsIdle] = useState(false); // User hasn't typed for a while
@@ -91,6 +93,113 @@ const FocusEditor: React.FC<FocusEditorProps> = ({
     }
   }, [selectedMood, generateSmartPrompt, isOpen, isEditing]);
 
+  // --- DEBOUNCED AUTO-SAVE LOGIC ---
+  useEffect(() => {
+    // We only auto-save if we are in "New Entry" mode (no initialEntry ID) or explicitly editing.
+    // If viewing history, do not overwrite the draft slot.
+    if (!isOpen || !isEditing || initialEntry) return;
+
+    // Don't save empty states
+    if (!title && !content && !highlight && !selectedMood) return;
+
+    setSaveStatus('saving');
+
+    const timeoutId = setTimeout(() => {
+        const draftData = {
+            title,
+            content,
+            highlight,
+            mood: selectedMood,
+            energyLevel,
+            weather,
+            impressivePlace,
+            tags,
+            songName,
+            timestamp: Date.now()
+        };
+        localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draftData));
+        setSaveStatus('saved');
+    }, 1500); // Wait 1.5s after typing stops before saving
+
+    return () => clearTimeout(timeoutId);
+  }, [title, content, highlight, selectedMood, energyLevel, weather, impressivePlace, tags, songName, isOpen, isEditing, initialEntry]);
+
+
+  // --- RESTORE DRAFT OR INITIALIZE ---
+  useEffect(() => {
+    if (isOpen) {
+        if (initialEntry) {
+            // Load existing entry -> View Mode
+            setIsEditing(false); // Default to View Mode
+            setEditingId(initialEntry.id);
+            setTitle(initialEntry.title || '');
+            setContent(initialEntry.content || '');
+            setHighlight(initialEntry.highlight || '');
+            setSelectedMood(initialEntry.mood || null);
+            setEnergyLevel(initialEntry.energyLevel || 50);
+            setWeather(initialEntry.weather || 'Trong xanh');
+            setImpressivePlace(initialEntry.impressivePlace || '');
+            setTags(initialEntry.tags || []);
+            setSongName(initialEntry.song?.title || '');
+            setIsToolbarExpanded(false);
+            setSaveStatus('idle');
+        } else {
+            // New Entry Mode -> Check for Draft
+            setIsEditing(true);
+            setEditingId(null);
+            
+            const savedDraft = localStorage.getItem(DRAFT_STORAGE_KEY);
+            let draftLoaded = false;
+            
+            if (savedDraft) {
+                try {
+                    const parsed = JSON.parse(savedDraft);
+                    // Only restore if draft is less than 24 hours old to avoid very stale data
+                    if (Date.now() - parsed.timestamp < 24 * 60 * 60 * 1000) {
+                        setTitle(parsed.title || '');
+                        setContent(parsed.content || '');
+                        setHighlight(parsed.highlight || '');
+                        setSelectedMood(parsed.mood || null);
+                        setEnergyLevel(parsed.energyLevel || 50);
+                        setWeather(parsed.weather || 'Trong xanh');
+                        setImpressivePlace(parsed.impressivePlace || '');
+                        setTags(parsed.tags || []);
+                        setSongName(parsed.songName || '');
+                        setSaveStatus('saved');
+                        draftLoaded = true;
+                    }
+                } catch (e) {
+                    console.error("Failed to restore draft", e);
+                }
+            }
+
+            if (!draftLoaded) {
+                setContent(initialContent);
+                setTitle('');
+                setHighlight('');
+                setSelectedMood(null);
+                setEnergyLevel(50);
+                setWeather('Trong xanh');
+                setImpressivePlace('');
+                setTags([]);
+                setSongName('');
+                setSaveStatus('idle');
+            }
+
+            setIsToolbarExpanded(false); // Start collapsed to encourage writing first
+            if (!selectedMood) generateSmartPrompt(null);
+            setRefreshCount(0);
+        }
+        
+        // Reset transient states
+        setCurrentTag('');
+        setIsExiting(false);
+        setActiveTab('mood');
+        setShowSuggestions(false);
+        setIsIdle(false);
+    }
+  }, [isOpen, initialEntry, initialContent, generateSmartPrompt]);
+
   // --- UX: Idle Animation Logic ---
   useEffect(() => {
     if (isOpen && isEditing) {
@@ -109,50 +218,6 @@ const FocusEditor: React.FC<FocusEditorProps> = ({
         if (idleTimerRef.current) clearTimeout(idleTimerRef.current);
     };
   }, [content, isOpen, isEditing]);
-
-
-  useEffect(() => {
-    if (isOpen) {
-        if (initialEntry) {
-            // Load existing entry -> View Mode
-            setIsEditing(false); // Default to View Mode
-            setEditingId(initialEntry.id);
-            setTitle(initialEntry.title || '');
-            setContent(initialEntry.content || '');
-            setHighlight(initialEntry.highlight || '');
-            setSelectedMood(initialEntry.mood || null);
-            setEnergyLevel(initialEntry.energyLevel || 50);
-            setWeather(initialEntry.weather || 'Trong xanh');
-            setImpressivePlace(initialEntry.impressivePlace || '');
-            setTags(initialEntry.tags || []);
-            setSongName(initialEntry.song?.title || '');
-            setIsToolbarExpanded(false);
-        } else {
-            // New Entry -> Edit Mode
-            setIsEditing(true);
-            setEditingId(null);
-            setContent(initialContent);
-            setTitle('');
-            setHighlight('');
-            setSelectedMood(null);
-            setEnergyLevel(50);
-            setWeather('Trong xanh');
-            setImpressivePlace('');
-            setTags([]);
-            setSongName('');
-            setIsToolbarExpanded(false); // Start collapsed to encourage writing first
-            generateSmartPrompt(null); // Initial prompt
-            setRefreshCount(0);
-        }
-        
-        // Reset transient states
-        setCurrentTag('');
-        setIsExiting(false);
-        setActiveTab('mood');
-        setShowSuggestions(false);
-        setIsIdle(false);
-    }
-  }, [isOpen, initialEntry, initialContent, generateSmartPrompt]);
 
   const handleCloseEditor = () => {
     setIsExiting(true);
@@ -189,17 +254,16 @@ const FocusEditor: React.FC<FocusEditorProps> = ({
         song: songName ? { title: songName } : undefined,
         images: [] 
     });
+
+    // Clear draft after successful save
+    localStorage.removeItem(DRAFT_STORAGE_KEY);
+    setSaveStatus('idle');
     handleClose();
   };
 
   // --- UX: Insert Prompt into Content ---
   const insertPromptToContent = () => {
-    // Removed blockquote format (> ), kept bold (** **)
     const promptText = `**${suggestedPrompt}**\n\n`;
-    
-    // If content exists, append with newline. If empty, just set it.
-    // However, usually prompts are better at the start if the user is stuck.
-    // Let's check cursor position if possible, but simplest is append if not empty, or set if empty.
     
     if (!content.trim()) {
         setContent(promptText);
@@ -388,13 +452,31 @@ const FocusEditor: React.FC<FocusEditorProps> = ({
 
          {/* Action Button */}
          {isEditing ? (
-            <button 
-                onClick={handleSave}
-                className="flex items-center gap-2 px-6 py-2.5 rounded-full bg-vespera-accent text-white shadow-lg shadow-purple-500/20 hover:shadow-purple-500/40 hover:-translate-y-0.5 transition-all"
-            >
-                <Save size={18} />
-                <span className="font-semibold text-sm">Lưu</span>
-            </button>
+            <div className="flex items-center gap-3">
+                {/* Auto-save Indicator */}
+                <div className="hidden md:flex items-center gap-1.5 text-xs font-medium transition-all">
+                    {saveStatus === 'saving' && (
+                        <>
+                            <Loader2 size={12} className="animate-spin text-gray-400" />
+                            <span className="text-gray-400">Đang lưu...</span>
+                        </>
+                    )}
+                    {saveStatus === 'saved' && (
+                        <>
+                            <Check size={12} className="text-green-500" />
+                            <span className="text-green-500">Đã lưu bản nháp</span>
+                        </>
+                    )}
+                </div>
+
+                <button 
+                    onClick={handleSave}
+                    className="flex items-center gap-2 px-6 py-2.5 rounded-full bg-vespera-accent text-white shadow-lg shadow-purple-500/20 hover:shadow-purple-500/40 hover:-translate-y-0.5 transition-all"
+                >
+                    <Save size={18} />
+                    <span className="font-semibold text-sm">Lưu</span>
+                </button>
+            </div>
         ) : (
              <button 
                 onClick={() => setIsEditing(true)}

@@ -28,3 +28,15 @@ export interface ChartDataPoint {
   day: string;
   value: number;
 }
+
+export interface BackupMetadata {
+  version: string;
+  appName: string;
+  backupDate: string;
+  totalEntries: number;
+}
+
+export interface VesperaBackup {
+  meta: BackupMetadata;
+  data: JournalEntry[];
+}

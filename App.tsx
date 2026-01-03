@@ -6,7 +6,7 @@ import InsightsBlock from './components/InsightsBlock';
 import HistoryBlock from './components/HistoryBlock';
 import FocusEditor from './components/FocusEditor';
 import SettingsModal from './components/SettingsModal';
-import { MoodLevel, JournalEntry } from './types';
+import { MoodLevel, JournalEntry, VesperaBackup } from './types';
 
 // Helper to generate dates relative to today to ensure the calendar always looks populated
 const getPastDate = (daysAgo: number) => new Date(Date.now() - daysAgo * 86400000).toISOString();
@@ -277,47 +277,91 @@ function App() {
     }
   }, []);
 
-  // --- Data Management Functions ---
+  // --- Data Management Functions (Enhanced for Vespera Backup Standard) ---
+  
   const handleExportData = useCallback(() => {
-    // We access journalEntries directly from state for export (event handler)
-    // To make this callback stable, we can use a ref or accept that it depends on journalEntries.
-    // However, since SettingsModal is often closed, re-creating this isn't a huge perf hit.
-    // Better yet, we can pass journalEntries to the modal only when open.
-    // For simplicity with best practices, we'll let this rebuild when entries change.
-    // But to optimize "smoothness" of opening other things, we keep it simple.
-    
-    // NOTE: Inside an event handler, we read the current state. 
-    // If we want this truly stable, we'd use a Ref for entries, but that's overkill here.
-    const dataStr = JSON.stringify(journalEntries, null, 2);
+    // Structure data with metadata
+    const backupData: VesperaBackup = {
+      meta: {
+        version: "1.0",
+        appName: "Vespera",
+        backupDate: new Date().toISOString(),
+        totalEntries: journalEntries.length
+      },
+      data: journalEntries
+    };
+
+    const dataStr = JSON.stringify(backupData, null, 2);
     const blob = new Blob([dataStr], { type: "application/json" });
     const url = URL.createObjectURL(blob);
+    
+    // Format filename: vespera_backup_YYYY-MM-DD.json
+    const dateStr = new Date().toISOString().split('T')[0];
+    
     const link = document.createElement('a');
     link.href = url;
-    link.download = `vespera-backup-${new Date().toISOString().split('T')[0]}.json`;
+    link.download = `vespera_backup_${dateStr}.json`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
   }, [journalEntries]);
 
+  // Validation function
+  const validateVesperaData = (json: any): boolean => {
+    // 1. Check root structure
+    if (!json || typeof json !== 'object') return false;
+    
+    // 2. Determine if it's the new format (with meta) or legacy (just array)
+    let entriesToCheck = json;
+    
+    if (json.meta && json.data && Array.isArray(json.data)) {
+        // It's the new Vespera format
+        if (json.meta.appName !== 'Vespera') console.warn("Backup might not be from Vespera");
+        entriesToCheck = json.data;
+    } else if (Array.isArray(json)) {
+        // Legacy format (just array)
+        entriesToCheck = json;
+    } else {
+        return false;
+    }
+
+    // 3. Validate entries in the array
+    if (entriesToCheck.length === 0) return true; // Empty array is technically valid
+    
+    const firstItem = entriesToCheck[0];
+    // A valid entry needs at least an ID and content/highlight
+    return Boolean(firstItem.id && (firstItem.content !== undefined || firstItem.highlight !== undefined));
+  };
+
   const handleImportData = useCallback((file: File) => {
     const reader = new FileReader();
     reader.onload = (e) => {
         try {
-            const json = JSON.parse(e.target?.result as string);
-            if (Array.isArray(json)) {
-                // Simple validation check
-                const isValid = json.every(item => item.id && (item.content || item.highlight));
-                if (isValid) {
-                    setJournalEntries(json);
-                    console.log("Data imported successfully");
-                } else {
-                    alert("Invalid Vespera backup file format.");
+            const content = e.target?.result as string;
+            const parsedJson = JSON.parse(content);
+            
+            if (validateVesperaData(parsedJson)) {
+                // Extract actual entries array based on format
+                const newEntries = Array.isArray(parsedJson) ? parsedJson : parsedJson.data;
+                const count = newEntries.length;
+                
+                // Confirm before overwriting
+                if (window.confirm(`Tìm thấy ${count} bài viết trong bản sao lưu.\nBạn có chắc chắn muốn khôi phục không? Dữ liệu hiện tại sẽ bị thay thế.`)) {
+                    setJournalEntries(newEntries);
+                    // Force close settings via explicit UI feedback handled in SettingsModal
+                    // Note: In a real app we might pass a success callback, 
+                    // but for now state update will reflect on UI.
                 }
+            } else {
+                alert("File không hợp lệ hoặc bị hỏng! Vui lòng kiểm tra lại file sao lưu.");
+                throw new Error("Invalid Validation");
             }
         } catch (error) {
             console.error("Error reading file", error);
-            alert("Error reading file.");
+            // Alert handled by SettingsModal via prop callback throwing error or we can rely on try/catch inside SettingsModal
+            // But since this is a callback, we re-throw to let SettingsModal know it failed
+            throw error; 
         }
     };
     reader.readAsText(file);
