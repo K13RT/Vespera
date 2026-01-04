@@ -39,19 +39,19 @@ const EditorWidget: React.FC<EditorWidgetProps> = ({ onExpand, savedEntry }) => 
       </div>
         
       {/* Main Content */}
-      <div className="relative z-10 flex-1 flex flex-col items-center justify-center gap-5 mt-2">
+      <div className="relative z-10 flex-1 flex flex-col items-center justify-center gap-3 mt-2">
           {hasEntry ? (
-            <div className="animate-fade-in flex flex-col items-center text-center">
+            <div className="animate-fade-in flex flex-col items-center text-center gap-2">
                <div className="relative">
                    <div className="absolute inset-0 bg-green-400/20 blur-xl rounded-full"></div>
-                   <div className="relative p-5 rounded-full bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-900/10 text-green-600 dark:text-green-400 mb-3 shadow-sm border border-green-200 dark:border-green-800/30">
-                      <CheckCircle2 size={40} strokeWidth={1.5} />
+                   <div className="relative p-3 md:p-4 rounded-full bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-900/10 text-green-600 dark:text-green-400 shadow-sm border border-green-200 dark:border-green-800/30">
+                      <CheckCircle2 size={28} className="md:w-9 md:h-9" strokeWidth={1.5} />
                    </div>
                </div>
-               <p className="text-xl font-medium text-gray-700 dark:text-gray-200">
+               <p className="text-lg md:text-xl font-medium text-gray-700 dark:text-gray-200">
                   Entry Recorded
                </p>
-               <div className="mt-2 flex items-center gap-1.5 text-sm text-gray-400 dark:text-gray-500 bg-white/50 dark:bg-black/20 px-3 py-1 rounded-full hover:bg-white/80 dark:hover:bg-black/40 transition-colors">
+               <div className="flex items-center gap-1.5 text-xs md:text-sm text-gray-400 dark:text-gray-500 bg-white/50 dark:bg-black/20 px-3 py-1 rounded-full hover:bg-white/80 dark:hover:bg-black/40 transition-colors">
                   <span>Click to revisit</span>
                   <ArrowRight size={12} />
                </div>
