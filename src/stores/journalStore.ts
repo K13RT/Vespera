@@ -18,6 +18,7 @@ interface JournalState {
   
   // Computed helpers
   getAllTags: () => string[];
+  getAllLocations: () => string[];
   getTodayEntry: () => JournalEntry | undefined;
   
   // Export helper
@@ -83,6 +84,16 @@ export const useJournalStore = create<JournalState>()(
       getAllTags: () => {
         const { entries } = get();
         return Array.from(new Set(entries.flatMap(entry => entry.tags || [])));
+      },
+
+      getAllLocations: () => {
+        const { entries } = get();
+        const allLocs = new Set<string>();
+        entries.forEach(e => {
+            if (e.locations) e.locations.forEach(l => allLocs.add(l));
+            if (e.impressivePlace) allLocs.add(e.impressivePlace);
+        });
+        return Array.from(allLocs);
       },
 
       getTodayEntry: () => {

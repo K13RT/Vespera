@@ -22,7 +22,9 @@ const FocusEditor: React.FC<FocusEditorProps> = ({
     initialEntry = null, 
     initialContent = '', 
     initialDate = null,
-    availableTags = [] 
+
+    availableTags = [],
+    availableLocations = []
 }) => {
   // Mode State
   const [isEditing, setIsEditing] = useState(true);
@@ -38,7 +40,7 @@ const FocusEditor: React.FC<FocusEditorProps> = ({
   const [selectedMood, setSelectedMood] = useState<MoodLevel | null>(null);
   const [energyLevel, setEnergyLevel] = useState(50);
   const [weather, setWeather] = useState('Trong xanh');
-  const [impressivePlace, setImpressivePlace] = useState('');
+  const [locations, setLocations] = useState<string[]>([]);
   const [currentTag, setCurrentTag] = useState('');
   const [tags, setTags] = useState<string[]>([]);
   
@@ -96,7 +98,7 @@ const FocusEditor: React.FC<FocusEditorProps> = ({
     const timeoutId = setTimeout(() => {
         const draftData = {
             title, content, highlight, mood: selectedMood,
-            energyLevel, weather, impressivePlace, tags, songName,
+            energyLevel, weather, locations, tags, songName,
             timestamp: Date.now()
         };
         localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draftData));
@@ -104,7 +106,7 @@ const FocusEditor: React.FC<FocusEditorProps> = ({
     }, 1500);
 
     return () => clearTimeout(timeoutId);
-  }, [title, content, highlight, selectedMood, energyLevel, weather, impressivePlace, tags, songName, isOpen, isEditing, initialEntry]);
+  }, [title, content, highlight, selectedMood, energyLevel, weather, locations, tags, songName, isOpen, isEditing, initialEntry]);
 
   // --- Initialize/Restore ---
   useEffect(() => {
@@ -118,7 +120,9 @@ const FocusEditor: React.FC<FocusEditorProps> = ({
             setSelectedMood(initialEntry.mood || null);
             setEnergyLevel(initialEntry.energyLevel || 50);
             setWeather(initialEntry.weather || 'Trong xanh');
-            setImpressivePlace(initialEntry.impressivePlace || '');
+            // Initialize locations from either new 'locations' array or old 'impressivePlace'
+            const initLocs = initialEntry.locations || (initialEntry.impressivePlace ? [initialEntry.impressivePlace] : []);
+            setLocations(initLocs);
             setTags(initialEntry.tags || []);
             setSongName(initialEntry.song?.title || '');
             setEntryDate(initialEntry.date);
@@ -133,7 +137,7 @@ const FocusEditor: React.FC<FocusEditorProps> = ({
             if (initialDate) {
                 setContent(''); setTitle(''); setHighlight('');
                 setSelectedMood(null); setEnergyLevel(50);
-                setWeather('Trong xanh'); setImpressivePlace('');
+                setWeather('Trong xanh'); setLocations([]);
                 setTags([]); setSongName('');
                 setEntryDate(defaultDate); setSaveStatus('idle');
             } else {
@@ -150,7 +154,7 @@ const FocusEditor: React.FC<FocusEditorProps> = ({
                             setSelectedMood(parsed.mood || null);
                             setEnergyLevel(parsed.energyLevel || 50);
                             setWeather(parsed.weather || 'Trong xanh');
-                            setImpressivePlace(parsed.impressivePlace || '');
+                            setLocations(parsed.locations || (parsed.impressivePlace ? [parsed.impressivePlace] : []));
                             setTags(parsed.tags || []);
                             setSongName(parsed.songName || '');
                             setEntryDate(defaultDate);
@@ -165,7 +169,7 @@ const FocusEditor: React.FC<FocusEditorProps> = ({
                 if (!draftLoaded) {
                     setContent(initialContent); setTitle(''); setHighlight('');
                     setSelectedMood(null); setEnergyLevel(50);
-                    setWeather('Trong xanh'); setImpressivePlace('');
+                    setWeather('Trong xanh'); setLocations([]);
                     setTags([]); setSongName('');
                     setEntryDate(defaultDate); setSaveStatus('idle');
                 }
@@ -219,7 +223,9 @@ const FocusEditor: React.FC<FocusEditorProps> = ({
         id: editingId, 
         date: entryDate,
         content, title, highlight,
-        mood: selectedMood, energyLevel, weather, impressivePlace,
+        mood: selectedMood, energyLevel, weather, 
+        locations, // Save new array
+        impressivePlace: locations[0] || '', // Backward compatibility
         tags: finalTags,
         song: songName ? { title: songName } : undefined,
         images: []
@@ -458,6 +464,7 @@ const FocusEditor: React.FC<FocusEditorProps> = ({
                         onChange={(e) => setTitle(e.target.value)}
                         onKeyDown={handleTitleKeyDown}
                         placeholder="Tiêu đề..."
+                        spellCheck={false}
                         className="w-full bg-transparent border-none text-3xl md:text-5xl font-bold text-vespera-textLight dark:text-white placeholder:text-gray-200 dark:placeholder:text-gray-700 mb-6 md:mb-8 focus:ring-0 outline-none leading-tight"
                     />
 
@@ -472,6 +479,7 @@ const FocusEditor: React.FC<FocusEditorProps> = ({
                             }}
                             onKeyDown={handleHighlightKeyDown}
                             placeholder="Điểm nhấn trong ngày..."
+                            spellCheck={false}
                             className="w-full bg-transparent rounded-r-xl py-2 pl-4 md:pl-6 pr-4 text-lg md:text-2xl font-serif italic text-gray-600 dark:text-gray-300 placeholder:text-gray-300 dark:placeholder:text-gray-600 border-none focus:ring-0 resize-none outline-none overflow-hidden"
                             rows={1}
                             style={{ minHeight: '3rem' }}
@@ -487,6 +495,7 @@ const FocusEditor: React.FC<FocusEditorProps> = ({
                         value={content}
                         onChange={(e) => setContent(e.target.value)}
                         placeholder="Hãy viết ra những suy nghĩ của bạn..."
+                        spellCheck={false}
                         className="w-full min-h-[50vh] bg-transparent border-none resize-none focus:ring-0 text-base md:text-xl text-vespera-textLight dark:text-gray-200 leading-loose placeholder:text-gray-300 dark:placeholder:text-gray-700 font-sans outline-none"
                         autoFocus
                     />
@@ -537,10 +546,10 @@ const FocusEditor: React.FC<FocusEditorProps> = ({
                                         <span>Thời tiết: {weather}</span>
                                     </div>
                                 )}
-                                {impressivePlace && (
+                                {locations.length > 0 && (
                                     <div className="flex items-center gap-3 text-sm text-gray-500 dark:text-gray-400">
                                         <MapPin size={16} />
-                                        <span>Tại: {impressivePlace}</span>
+                                        <span>Tại: {locations.join(', ')}</span>
                                     </div>
                                 )}
                                 {songName && (
@@ -649,12 +658,14 @@ const FocusEditor: React.FC<FocusEditorProps> = ({
                             ) : (
                                 <div className="space-y-4">
                                     <MetadataPanel
+                                        key={editingId || 'new'}
                                         weather={weather}
-                                        impressivePlace={impressivePlace}
+                                        locations={locations}
                                         songName={songName}
                                         onWeatherChange={setWeather}
-                                        onPlaceChange={setImpressivePlace}
+                                        onLocationsChange={setLocations}
                                         onSongChange={setSongName}
+                                        availableLocations={availableLocations}
                                     />
                                     <TagInput
                                         tags={tags}

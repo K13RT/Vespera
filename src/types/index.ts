@@ -8,6 +8,7 @@ export interface JournalEntry {
   energyLevel?: number; // 0-100
   weather?: string;
   impressivePlace?: string;
+  locations?: string[]; // New: Multiple locations support
   tags?: string[];
   song?: {
     title: string;

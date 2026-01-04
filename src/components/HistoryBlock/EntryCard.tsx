@@ -37,10 +37,15 @@ const EntryCard: React.FC<EntryCardProps> = ({ entry, onClick }) => {
               }
             </span>
           </div>
-          {entry.impressivePlace && (
-            <div className="flex items-center gap-1 text-[10px] text-gray-500 dark:text-gray-400 truncate max-w-[100px]" title={entry.impressivePlace}>
+          {( (entry.locations && entry.locations.length > 0) || entry.impressivePlace) && (
+            <div className="flex items-center gap-1 text-[10px] text-gray-500 dark:text-gray-400 truncate max-w-[100px]" title={entry.locations?.join(', ') || entry.impressivePlace}>
               <MapPin size={10} />
-              <span className="truncate">{entry.impressivePlace}</span>
+              <span className="truncate">
+                {entry.locations && entry.locations.length > 0 
+                    ? `${entry.locations[0]}${entry.locations.length > 1 ? ` +${entry.locations.length - 1}` : ''}`
+                    : entry.impressivePlace
+                }
+              </span>
             </div>
           )}
         </div>

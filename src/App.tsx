@@ -17,6 +17,7 @@ function App() {
     importEntries, 
     clearEntries,
     getAllTags,
+    getAllLocations,
     getTodayEntry,
     exportBackup
   } = useJournalStore();
@@ -143,6 +144,7 @@ function App() {
 
   // Computed values from store
   const allTags = getAllTags();
+  const allLocations = getAllLocations();
   const todayEntry = getTodayEntry();
   const latestEntryContent = todayEntry?.content;
 
@@ -166,6 +168,7 @@ function App() {
         initialEntry={selectedEntry}
         initialDate={targetDateForNewEntry}
         availableTags={allTags}
+        availableLocations={allLocations}
       />
 
       <div className="max-w-7xl mx-auto px-4 py-6 md:p-8 lg:p-12">
@@ -218,11 +221,11 @@ function App() {
                 />
             </div>
 
-            <div className="md:col-span-1 lg:col-span-1 md:row-span-1 min-h-[200px] md:min-h-0">
+            <div className="md:col-span-1 lg:col-span-1 md:row-span-1 min-h-[200px] md:min-h-0 flex flex-col">
                 <MoodTracker entries={journalEntries} />
             </div>
 
-            <div className="md:col-span-1 lg:col-span-1 md:row-span-1 min-h-[200px] md:min-h-0">
+            <div className="md:col-span-1 lg:col-span-1 md:row-span-1 min-h-[200px] md:min-h-0 flex flex-col">
                 <InsightsBlock entries={journalEntries} />
             </div>
 

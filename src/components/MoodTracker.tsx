@@ -23,21 +23,23 @@ const MoodTracker: React.FC<MoodTrackerProps> = ({ entries }) => {
 
     const data = last7Days.map(date => {
         const dateStr = date.toDateString();
+        // Find entry for this date (taking the latest if multiple)
         const entry = entries.find(e => new Date(e.date).toDateString() === dateStr);
         return {
             day: date.toLocaleDateString('en-US', { weekday: 'short' }),
             fullDate: dateStr,
-            value: entry?.mood || 0,
+            value: entry?.mood || 0, // 0 indicates no data
         };
     });
 
-    // Calculate Average
+    // Calculate Average (only for days with data)
     const validEntries = data.filter(d => d.value > 0);
     const totalScore = validEntries.reduce((acc, curr) => acc + curr.value, 0);
     const avg = validEntries.length > 0 ? Math.round(totalScore / validEntries.length) : 0;
     const label = MOOD_OPTIONS.find(m => m.level === avg)?.label || 'Neutral';
 
-    // Calculate Trend
+    // Calculate Trend (Avg of last 3 days vs Avg of previous 3 days)
+    // Slice index: [0,1,2,3,4,5,6] -> Last 3: 4,5,6 | Prev 3: 1,2,3
     const recentData = data.slice(4, 7).filter(d => d.value > 0);
     const prevData = data.slice(1, 4).filter(d => d.value > 0);
     
@@ -57,34 +59,22 @@ const MoodTracker: React.FC<MoodTrackerProps> = ({ entries }) => {
     };
   }, [entries]);
 
-  // Custom Tick for Y-Axis (Emoji icons for reliable SVG rendering)
+  // Custom Tick for Y-Axis (Icons)
   const CustomYAxisTick = ({ x, y, payload }: any) => {
-    const moodLevel = payload.value;
+    const moodLevel = Number(payload.value);
+    const moodOption = MOOD_OPTIONS.find(m => m.level === moodLevel);
     
-    // Map mood levels to emoji
-    const getMoodEmoji = (level: number) => {
-      switch (level) {
-        case 1: return '🌧️';
-        case 2: return '😢';
-        case 3: return '😐';
-        case 4: return '😊';
-        case 5: return '💖';
-        default: return '';
-      }
-    };
+    // Return null for invalid levels
+    if (!moodOption) return null;
     
-    // Only show for levels 1, 3, 5
-    if (![1, 3, 5].includes(moodLevel)) return null;
-    
+    const Icon = moodOption.icon;
     return (
-      <g transform={`translate(${x - 18}, ${y + 4})`}>
-        <text 
-          fontSize={12} 
-          textAnchor="middle"
-          dominantBaseline="middle"
-        >
-          {getMoodEmoji(moodLevel)}
-        </text>
+      <g transform={`translate(${x - 20}, ${y})`}>
+        <foreignObject x={-10} y={-10} width={30} height={30}>
+          <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Icon size={14} className={moodOption.color} />
+          </div>
+        </foreignObject>
       </g>
     );
   };
@@ -92,7 +82,7 @@ const MoodTracker: React.FC<MoodTrackerProps> = ({ entries }) => {
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       const value = payload[0].value;
-      if (value === 0) return null;
+      if (value === 0) return null; // Don't show tooltip for empty days
 
       const moodOption = MOOD_OPTIONS.find(m => m.level === value);
       const Icon = moodOption?.icon || Activity;
@@ -167,12 +157,13 @@ const MoodTracker: React.FC<MoodTrackerProps> = ({ entries }) => {
             />
             
             <YAxis 
-                domain={[0, 5]} 
-                tickCount={6} 
+                domain={[1, 5]} 
+                ticks={[1, 3, 5]}
                 axisLine={false}
                 tickLine={false}
                 tick={<CustomYAxisTick />}
-                width={35} 
+                width={40}
+                allowDataOverflow={true}
             />
 
             <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#9C27B0', strokeWidth: 1, strokeDasharray: '4 4' }} />
@@ -187,6 +178,7 @@ const MoodTracker: React.FC<MoodTrackerProps> = ({ entries }) => {
                 fill="url(#colorMood)" 
                 activeDot={{ r: 6, strokeWidth: 4, stroke: '#fff', fill: '#9C27B0' }}
                 dot={(props) => {
+                    // Only render dot if value > 0
                     if (props.payload.value === 0) return <></>;
                     return <circle cx={props.cx} cy={props.cy} r={3} strokeWidth={0} fill="#9C27B0" fillOpacity={0.6} />;
                 }}

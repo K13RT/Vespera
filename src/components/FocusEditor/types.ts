@@ -8,6 +8,7 @@ export interface FocusEditorProps {
   initialContent?: string;
   initialDate?: string | null;
   availableTags?: string[];
+  availableLocations?: string[];
 }
 
 export interface EditorState {
