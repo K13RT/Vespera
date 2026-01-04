@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 import { MOOD_OPTIONS } from '../constants';
-import { Activity, TrendingUp, TrendingDown, Minus, Heart, CloudRain, Meh } from 'lucide-react';
+import { Activity, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { JournalEntry, MoodLevel } from '../types';
 
 interface MoodTrackerProps {
@@ -61,10 +61,20 @@ const MoodTracker: React.FC<MoodTrackerProps> = ({ entries }) => {
 
   // Custom Tick for Y-Axis (Icons)
   const CustomYAxisTick = ({ x, y, payload }: any) => {
-    if (payload.value === 1) return <foreignObject x={x - 30} y={y - 12} width={24} height={24}><div className="flex justify-center text-gray-400"><CloudRain size={16} /></div></foreignObject>;
-    if (payload.value === 3) return <foreignObject x={x - 30} y={y - 12} width={24} height={24}><div className="flex justify-center text-gray-400"><Meh size={16} /></div></foreignObject>;
-    if (payload.value === 5) return <foreignObject x={x - 30} y={y - 12} width={24} height={24}><div className="flex justify-center text-pink-400"><Heart size={16} /></div></foreignObject>;
-    return null;
+    const moodLevel = payload.value as MoodLevel;
+    const moodOption = MOOD_OPTIONS.find(m => m.level === moodLevel);
+    
+    // Only show icons for mood levels 1, 3, 5
+    if (![1, 3, 5].includes(moodLevel) || !moodOption) return null;
+    
+    const Icon = moodOption.icon;
+    return (
+      <foreignObject x={x - 30} y={y - 10} width={24} height={24}>
+        <div className="flex justify-center">
+          <Icon size={14} className={moodOption.color} />
+        </div>
+      </foreignObject>
+    );
   };
 
   const CustomTooltip = ({ active, payload, label }: any) => {

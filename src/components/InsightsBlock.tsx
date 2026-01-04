@@ -167,29 +167,29 @@ const InsightsBlock: React.FC<InsightsBlockProps> = ({ entries }) => {
             <div className="flex-1 flex flex-col justify-center">
                 
                 {/* STREAK VIEW */}
-                <div className={`transition-all duration-500 transform absolute inset-x-5 top-14 bottom-5 ${view === 'streak' ? 'translate-x-0 opacity-100 scale-100' : '-translate-x-10 opacity-0 scale-95 pointer-events-none'}`}>
-                    <div className="flex flex-col items-center text-center gap-1">
-                        <div className="relative mb-2">
+                <div className={`transition-all duration-500 transform absolute inset-x-4 top-12 bottom-8 flex items-center justify-center ${view === 'streak' ? 'translate-x-0 opacity-100 scale-100' : '-translate-x-10 opacity-0 scale-95 pointer-events-none'}`}>
+                    <div className="flex flex-col items-center text-center gap-0.5">
+                        <div className="relative mb-1">
                              {/* Pulsing Rings - Only show if streak > 0 */}
                              {streakDays > 0 && <div className="absolute inset-0 bg-orange-400/20 rounded-full animate-ping opacity-75"></div>}
-                             <div className={`relative p-4 rounded-full shadow-sm border ${streakDays > 0 ? 'bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-900/10 text-orange-500 dark:text-orange-400 border-orange-200 dark:border-orange-800/30' : 'bg-gray-100 dark:bg-white/5 text-gray-400 border-gray-200 dark:border-white/10'}`}>
-                                <Flame size={32} fill={streakDays > 0 ? "currentColor" : "none"} fillOpacity={0.6} className={streakDays > 0 ? "animate-pulse" : ""} />
+                             <div className={`relative p-2.5 rounded-full shadow-sm border ${streakDays > 0 ? 'bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/20 dark:to-orange-900/10 text-orange-500 dark:text-orange-400 border-orange-200 dark:border-orange-800/30' : 'bg-gray-100 dark:bg-white/5 text-gray-400 border-gray-200 dark:border-white/10'}`}>
+                                <Flame size={22} fill={streakDays > 0 ? "currentColor" : "none"} fillOpacity={0.6} className={streakDays > 0 ? "animate-pulse" : ""} />
                              </div>
                              {streakDays > 0 && (
-                                <div className="absolute -top-1 -right-1">
-                                    <Sparkles size={16} className="text-yellow-400 animate-bounce" fill="currentColor" />
+                                <div className="absolute -top-0.5 -right-0.5">
+                                    <Sparkles size={12} className="text-yellow-400 animate-bounce" fill="currentColor" />
                                 </div>
                              )}
                         </div>
                         
-                        <div className="flex items-baseline gap-1 mt-1">
-                            <span className="text-3xl font-bold text-gray-800 dark:text-white">
+                        <div className="flex items-baseline gap-0.5">
+                            <span className="text-2xl font-bold text-gray-800 dark:text-white">
                                 <CountUp end={streakDays} />
                             </span>
-                            <span className="text-sm font-medium text-gray-500 dark:text-gray-400">days</span>
+                            <span className="text-xs font-medium text-gray-500 dark:text-gray-400">days</span>
                         </div>
-                        <p className={`text-xs font-medium px-2 py-0.5 rounded-full mt-1 ${streakDays > 2 ? 'text-orange-500/80 bg-orange-50 dark:bg-orange-900/20' : 'text-gray-400 bg-gray-100 dark:bg-white/5'}`}>
-                            {streakDays > 5 ? "You're on fire!" : streakDays > 0 ? "Keep it up!" : "Start today!"}
+                        <p className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${streakDays > 2 ? 'text-orange-500/80 bg-orange-50 dark:bg-orange-900/20' : 'text-gray-400 bg-gray-100 dark:bg-white/5'}`}>
+                            {streakDays > 5 ? "On fire!" : streakDays > 0 ? "Keep it up!" : "Start today!"}
                         </p>
                     </div>
                 </div>
