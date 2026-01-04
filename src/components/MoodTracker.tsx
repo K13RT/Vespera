@@ -23,23 +23,21 @@ const MoodTracker: React.FC<MoodTrackerProps> = ({ entries }) => {
 
     const data = last7Days.map(date => {
         const dateStr = date.toDateString();
-        // Find entry for this date (taking the latest if multiple)
         const entry = entries.find(e => new Date(e.date).toDateString() === dateStr);
         return {
             day: date.toLocaleDateString('en-US', { weekday: 'short' }),
             fullDate: dateStr,
-            value: entry?.mood || 0, // 0 indicates no data
+            value: entry?.mood || 0,
         };
     });
 
-    // Calculate Average (only for days with data)
+    // Calculate Average
     const validEntries = data.filter(d => d.value > 0);
     const totalScore = validEntries.reduce((acc, curr) => acc + curr.value, 0);
     const avg = validEntries.length > 0 ? Math.round(totalScore / validEntries.length) : 0;
     const label = MOOD_OPTIONS.find(m => m.level === avg)?.label || 'Neutral';
 
-    // Calculate Trend (Avg of last 3 days vs Avg of previous 3 days)
-    // Slice index: [0,1,2,3,4,5,6] -> Last 3: 4,5,6 | Prev 3: 1,2,3
+    // Calculate Trend
     const recentData = data.slice(4, 7).filter(d => d.value > 0);
     const prevData = data.slice(1, 4).filter(d => d.value > 0);
     
@@ -59,28 +57,42 @@ const MoodTracker: React.FC<MoodTrackerProps> = ({ entries }) => {
     };
   }, [entries]);
 
-  // Custom Tick for Y-Axis (Icons)
+  // Custom Tick for Y-Axis (Emoji icons for reliable SVG rendering)
   const CustomYAxisTick = ({ x, y, payload }: any) => {
-    const moodLevel = payload.value as MoodLevel;
-    const moodOption = MOOD_OPTIONS.find(m => m.level === moodLevel);
+    const moodLevel = payload.value;
     
-    // Only show icons for mood levels 1, 3, 5
-    if (![1, 3, 5].includes(moodLevel) || !moodOption) return null;
+    // Map mood levels to emoji
+    const getMoodEmoji = (level: number) => {
+      switch (level) {
+        case 1: return '🌧️';
+        case 2: return '😢';
+        case 3: return '😐';
+        case 4: return '😊';
+        case 5: return '💖';
+        default: return '';
+      }
+    };
     
-    const Icon = moodOption.icon;
+    // Only show for levels 1, 3, 5
+    if (![1, 3, 5].includes(moodLevel)) return null;
+    
     return (
-      <foreignObject x={x - 30} y={y - 10} width={24} height={24}>
-        <div className="flex justify-center">
-          <Icon size={14} className={moodOption.color} />
-        </div>
-      </foreignObject>
+      <g transform={`translate(${x - 18}, ${y + 4})`}>
+        <text 
+          fontSize={12} 
+          textAnchor="middle"
+          dominantBaseline="middle"
+        >
+          {getMoodEmoji(moodLevel)}
+        </text>
+      </g>
     );
   };
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       const value = payload[0].value;
-      if (value === 0) return null; // Don't show tooltip for empty days
+      if (value === 0) return null;
 
       const moodOption = MOOD_OPTIONS.find(m => m.level === value);
       const Icon = moodOption?.icon || Activity;
@@ -175,7 +187,6 @@ const MoodTracker: React.FC<MoodTrackerProps> = ({ entries }) => {
                 fill="url(#colorMood)" 
                 activeDot={{ r: 6, strokeWidth: 4, stroke: '#fff', fill: '#9C27B0' }}
                 dot={(props) => {
-                    // Only render dot if value > 0
                     if (props.payload.value === 0) return <></>;
                     return <circle cx={props.cx} cy={props.cy} r={3} strokeWidth={0} fill="#9C27B0" fillOpacity={0.6} />;
                 }}
