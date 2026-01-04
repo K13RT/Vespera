@@ -8,14 +8,22 @@ import FocusEditor from '@/components/FocusEditor';
 import SettingsModal from '@/components/SettingsModal';
 import { JournalEntry, VesperaBackup } from '@/types';
 import { INITIAL_ENTRIES } from '@/data/mockEntries';
+import { useJournalEntries } from '@/hooks/useJournalEntries';
 
 function App() {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isFocusMode, setIsFocusMode] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   
-  // State for Journaling
-  const [journalEntries, setJournalEntries] = useState<JournalEntry[]>(INITIAL_ENTRIES);
+  // Journal entries with localStorage persistence
+  const { 
+    entries: journalEntries, 
+    isLoaded,
+    saveEntry,
+    importEntries,
+    clearEntries: clearStoredEntries 
+  } = useJournalEntries(INITIAL_ENTRIES);
+  
   const [currentDraft, setCurrentDraft] = useState("");
   const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null);
   const [targetDateForNewEntry, setTargetDateForNewEntry] = useState<string | null>(null);
@@ -64,25 +72,12 @@ function App() {
   }, []);
 
   const handleSaveEntry = useCallback((entryData: any) => {
-    setJournalEntries(currentEntries => {
-        if (entryData.id) {
-            return currentEntries.map(entry => 
-                entry.id === entryData.id ? { ...entry, ...entryData } : entry
-            );
-        } else {
-            const newEntry: JournalEntry = {
-                id: Date.now().toString(),
-                date: entryData.date || new Date().toISOString(), 
-                ...entryData
-            };
-            return [newEntry, ...currentEntries];
-        }
-    });
+    saveEntry(entryData);
     
     if (!entryData.id) {
         setCurrentDraft("");
     }
-  }, []);
+  }, [saveEntry]);
 
   const handleExportData = useCallback(() => {
     const backupData: VesperaBackup = {
@@ -142,7 +137,7 @@ function App() {
                 const count = newEntries.length;
                 
                 if (window.confirm(`Tìm thấy ${count} bài viết trong bản sao lưu.\nBạn có chắc chắn muốn khôi phục không? Dữ liệu hiện tại sẽ bị thay thế.`)) {
-                    setJournalEntries(newEntries);
+                    importEntries(newEntries);
                 }
             } else {
                 alert("File không hợp lệ hoặc bị hỏng! Vui lòng kiểm tra lại file sao lưu.");
@@ -157,8 +152,8 @@ function App() {
   }, []);
 
   const handleClearData = useCallback(() => {
-    setJournalEntries([]);
-  }, []);
+    clearStoredEntries();
+  }, [clearStoredEntries]);
 
   const handleExpandEditor = useCallback(() => {
       setSelectedEntry(null);
