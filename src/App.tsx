@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback } from 'react';
 import { Moon, Sun, Settings } from 'lucide-react';
 import EditorWidget from '@/components/EditorWidget';
 import MoodTracker from '@/components/MoodTracker';
@@ -7,88 +7,70 @@ import HistoryBlock from '@/components/HistoryBlock';
 import FocusEditor from '@/components/FocusEditor';
 import SettingsModal from '@/components/SettingsModal';
 import { JournalEntry, VesperaBackup } from '@/types';
-import { INITIAL_ENTRIES } from '@/data/mockEntries';
-import { useJournalEntries } from '@/hooks/useJournalEntries';
+import { useJournalStore, useUIStore } from '@/stores';
 
 function App() {
-  const [isDarkMode, setIsDarkMode] = useState(false);
-  const [isFocusMode, setIsFocusMode] = useState(false);
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  
-  // Journal entries with localStorage persistence
+  // Zustand stores
   const { 
     entries: journalEntries, 
-    isLoaded,
-    saveEntry,
-    importEntries,
-    clearEntries: clearStoredEntries 
-  } = useJournalEntries(INITIAL_ENTRIES);
+    saveEntry, 
+    importEntries, 
+    clearEntries,
+    getAllTags,
+    getTodayEntry,
+    exportBackup
+  } = useJournalStore();
   
-  const [currentDraft, setCurrentDraft] = useState("");
-  const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null);
-  const [targetDateForNewEntry, setTargetDateForNewEntry] = useState<string | null>(null);
-  
+  const {
+    isDarkMode,
+    isFocusMode,
+    selectedEntry,
+    targetDateForNewEntry,
+    currentDraft,
+    isSettingsOpen,
+    setDarkMode,
+    toggleTheme,
+    openEditor,
+    closeEditor,
+    clearDraft,
+    openSettings,
+    closeSettings
+  } = useUIStore();
+
   // Auto Night Shift Logic
   useEffect(() => {
     const checkTime = () => {
       const hour = new Date().getHours();
       if (hour >= 18 || hour < 6) {
-        setIsDarkMode(true);
-        document.documentElement.classList.add('dark');
+        setDarkMode(true);
       } else {
-        setIsDarkMode(false);
-        document.documentElement.classList.remove('dark');
+        setDarkMode(false);
       }
     };
 
     checkTime();
     const interval = setInterval(checkTime, 60000); 
     return () => clearInterval(interval);
-  }, []);
-
-  const toggleTheme = () => {
-    setIsDarkMode(!isDarkMode);
-    document.documentElement.classList.toggle('dark');
-  };
+  }, [setDarkMode]);
 
   const handleEntryClick = useCallback((entry: JournalEntry) => {
-    setSelectedEntry(entry);
-    setTargetDateForNewEntry(null);
-    setIsFocusMode(true);
-  }, []);
+    openEditor(entry, null);
+  }, [openEditor]);
 
   const handleDateSelect = useCallback((date: Date) => {
-    setSelectedEntry(null);
-    setTargetDateForNewEntry(date.toISOString());
-    setIsFocusMode(true);
-  }, []);
-
-  const handleCloseEditor = useCallback(() => {
-    setIsFocusMode(false);
-    setTimeout(() => {
-        setSelectedEntry(null);
-        setTargetDateForNewEntry(null);
-    }, 500);
-  }, []);
+    openEditor(null, date.toISOString());
+  }, [openEditor]);
 
   const handleSaveEntry = useCallback((entryData: any) => {
     saveEntry(entryData);
     
     if (!entryData.id) {
-        setCurrentDraft("");
+      clearDraft();
     }
-  }, [saveEntry]);
+  }, [saveEntry, clearDraft]);
 
   const handleExportData = useCallback(() => {
-    const backupData: VesperaBackup = {
-      meta: {
-        version: "1.0",
-        appName: "Vespera",
-        backupDate: new Date().toISOString(),
-        totalEntries: journalEntries.length
-      },
-      data: journalEntries
-    };
+    const backupData = exportBackup();
 
     const dataStr = JSON.stringify(backupData, null, 2);
     const blob = new Blob([dataStr], { type: "application/json" });
@@ -103,7 +85,7 @@ function App() {
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
-  }, [journalEntries]);
+  }, [exportBackup]);
 
   const validateVesperaData = (json: any): boolean => {
     if (!json || typeof json !== 'object') return false;
@@ -149,32 +131,27 @@ function App() {
         }
     };
     reader.readAsText(file);
-  }, []);
+  }, [importEntries]);
 
   const handleClearData = useCallback(() => {
-    clearStoredEntries();
-  }, [clearStoredEntries]);
+    clearEntries();
+  }, [clearEntries]);
 
   const handleExpandEditor = useCallback(() => {
-      setSelectedEntry(null);
-      setTargetDateForNewEntry(null);
-      setIsFocusMode(true);
-  }, []);
+    openEditor(null, null);
+  }, [openEditor]);
 
-  const allTags = React.useMemo(() => 
-    Array.from(new Set(journalEntries.flatMap(entry => entry.tags || []))), 
-  [journalEntries]);
-
-  const latestEntryContent = journalEntries.length > 0 && new Date(journalEntries[0].date).toDateString() === new Date().toDateString() 
-    ? journalEntries[0].content 
-    : undefined;
+  // Computed values from store
+  const allTags = getAllTags();
+  const todayEntry = getTodayEntry();
+  const latestEntryContent = todayEntry?.content;
 
   return (
     <div className={`min-h-screen transition-colors duration-700 ${isDarkMode ? 'bg-vespera-dark text-vespera-textDark' : 'bg-vespera-light text-vespera-textLight'}`}>
       
       <SettingsModal 
         isOpen={isSettingsOpen}
-        onClose={() => setIsSettingsOpen(false)}
+        onClose={closeSettings}
         onExport={handleExportData}
         onImport={handleImportData}
         onClear={handleClearData}
@@ -183,7 +160,7 @@ function App() {
 
       <FocusEditor 
         isOpen={isFocusMode} 
-        onClose={handleCloseEditor} 
+        onClose={closeEditor} 
         onSave={handleSaveEntry}
         initialContent={currentDraft}
         initialEntry={selectedEntry}
@@ -203,7 +180,7 @@ function App() {
             
             <div className="flex items-center gap-3">
                 <button
-                    onClick={() => setIsSettingsOpen(true)}
+                    onClick={openSettings}
                     className="p-2.5 rounded-full bg-gray-200 dark:bg-white/10 border border-gray-300 dark:border-white/5 text-gray-500 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-white/20 transition-all duration-300 focus:outline-none"
                     aria-label="Settings"
                 >
